@@ -1,0 +1,35 @@
+confusion matrix:
+[[4973  110]
+ [ 425  342]]
+accuracy = 0.9085469841957092
+precision class 0 = 0.9212671518325806
+precision class 1 = 0.7566371560096741
+recall class 0 = 0.9783592224121094
+recall class 1 = 0.4458930790424347
+AUC of ROC = 0.9096266641290432
+AUC of PRC = 0.6762050387074025
+min(+P, Se) = 0.60625814863103
+confusion matrix:
+[[1060   56]
+ [ 101   50]]
+accuracy = 0.8760852217674255
+precision class 0 = 0.9130060076713562
+precision class 1 = 0.4716981053352356
+recall class 0 = 0.9498208165168762
+recall class 1 = 0.33112582564353943
+AUC of ROC = 0.8137328206223741
+AUC of PRC = 0.4084572929685027
+min(+P, Se) = 0.42857142857142855
+confusion matrix:
+[[2712  150]
+ [ 241  133]]
+accuracy = 0.8791717886924744
+precision class 0 = 0.9183880686759949
+precision class 1 = 0.4699646532535553
+recall class 0 = 0.947589099407196
+recall class 1 = 0.35561496019363403
+AUC of ROC = 0.798640306131982
+AUC of PRC = 0.378276614470088
+min(+P, Se) = 0.42780748663101603
+
+Process finished with exit code 0

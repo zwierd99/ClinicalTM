@@ -1,0 +1,71 @@
+regular data
+confusion matrix:
+[[12615    60]
+ [  327  1580]]
+accuracy = 0.9734604358673096
+precision class 0 = 0.9747334122657776
+precision class 1 = 0.9634146094322205
+recall class 0 = 0.9952662587165833
+recall class 1 = 0.828526496887207
+AUC of ROC = 0.9869550053834674
+AUC of PRC = 0.9557959073603841
+min(+P, Se) = 0.8993183009963294
+confusion matrix:
+[[2642  144]
+ [ 281  136]]
+accuracy = 0.8673118948936462
+precision class 0 = 0.9038658738136292
+precision class 1 = 0.48571428656578064
+recall class 0 = 0.9483129978179932
+recall class 1 = 0.32613909244537354
+AUC of ROC = 0.7888978121164233
+AUC of PRC = 0.4110582668758361
+min(+P, Se) = 0.4449760765550239
+confusion matrix:
+[[2721  141]
+ [ 242  132]]
+accuracy = 0.8816440105438232
+precision class 0 = 0.9183260202407837
+precision class 1 = 0.48351648449897766
+recall class 0 = 0.9507337808609009
+recall class 1 = 0.3529411852359772
+AUC of ROC = 0.7972613669062059
+AUC of PRC = 0.4193071592087207
+min(+P, Se) = 0.42780748663101603
+
+tf_idf data
+confusion matrix:
+[[12619    56]
+ [  366  1541]]
+accuracy = 0.9710602164268494
+precision class 0 = 0.9718136191368103
+precision class 1 = 0.964934229850769
+recall class 0 = 0.995581865310669
+recall class 1 = 0.808075487613678
+AUC of ROC = 0.9899799037905609
+AUC of PRC = 0.9646007783243778
+min(+P, Se) = 0.9046121593291404
+confusion matrix:
+[[2656  130]
+ [ 279  138]]
+accuracy = 0.8723072409629822
+precision class 0 = 0.9049403667449951
+precision class 1 = 0.5149253606796265
+recall class 0 = 0.9533381462097168
+recall class 1 = 0.3309352397918701
+AUC of ROC = 0.787290340018007
+AUC of PRC = 0.408294663927223
+min(+P, Se) = 0.44258373205741625
+confusion matrix:
+[[2740  122]
+ [ 253  121]]
+accuracy = 0.8841161727905273
+precision class 0 = 0.9154694080352783
+precision class 1 = 0.49794238805770874
+recall class 0 = 0.9573724865913391
+recall class 1 = 0.3235294222831726
+AUC of ROC = 0.8012902797863952
+AUC of PRC = 0.4189932079944685
+min(+P, Se) = 0.4117647058823529
+
+Process finished with exit code 0
