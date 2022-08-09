@@ -107,6 +107,55 @@ def plot_calibration(calibration, tm_split_size, model_type):
     plt.savefig(f'data/root/calibration_plots/{model_type}_{tm_split_size}.png')
     plt.show()
 
+def plot_calibration_metrics():
+    with open("data/calibration_metrics/metrics.json", "r") as file:
+        metrics = json.load(file)
+    FFNN_list = []
+    logreg_list = []
+    FFNN_splitsizes = []
+    logreg_splitsizes = []
+    for key, value in metrics.items():
+        if re.search("FFNN", key):
+            FFNN_splitsizes.append(float(re.sub('FFNN_', '', key)))
+            FFNN_list.append(value)
+        if re.search("logreg", key):
+            logreg_splitsizes.append(float(re.sub('logreg_', '', key)))
+            logreg_list.append(value)
+    for tuple in [(FFNN_list, FFNN_splitsizes, "FFNN"),
+                  (logreg_list, logreg_splitsizes, "LogReg")]:
+        single_metric_plot(*tuple)
+
+
+def single_metric_plot(metric_list, splitsize_list, model):
+    slopes = []
+    intercepts = []
+    citls = []
+    for row in metric_list:
+        row = row.split(", ")
+        slope = row[0]
+        intercept = row[1]
+        citl = row[2]
+        slopes.append(float(slope))
+        intercepts.append(float(intercept))
+        citls.append(float(citl))
+    for list, name in [(slopes, "Slope"), (intercepts, "Intercept")
+        , (citls, "CITL")]:
+        plt.plot(splitsize_list, list, label=f"{name}")
+        # plt.xticks(np.arange(0, 1, .1))
+        # plt.yticks(np.arange(0, 1.1, .1))
+        # plt.xticks(rotation=315)
+        # plt.ylabel(r'F1 score of label $\bf{1}$')
+    plt.axhline(0, color='orange', linestyle=":", label="Perfect Intercept, CITL")
+    plt.axhline(1, color='b', linestyle=":", label="Perfect Slope")
+    plt.xlabel('Training data size')
+    plt.title(f'Calibration metrics for {model}')
+    plt.tight_layout()
+    plt.legend()
+    plt.show()
+
+
+
+
 def save_calibration_metrics(slope, intercept, CITL, model_type, tm_split_size):
     if not os.path.exists('data/calibration_metrics'):
         os.mkdir('data/calibration_metrics')
@@ -161,6 +210,7 @@ def main():
     create_AUROC_plots()
     create_f1score_plot('data/root')
     create_f1_auroc_plot()
+    plot_calibration_metrics()
 
 if __name__ == '__main__':
     main()

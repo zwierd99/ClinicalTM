@@ -16,9 +16,16 @@ import numpy as np
 
 def logit_function(p):
     print(max(p))
-    p = np.clip(p, 0.0001, 0.999999) # to prevent division by 0
-    print(max(p))
-    return np.log(p/(1-p))
+    eps = np.finfo(np.float32).eps
+    test1 = np.nextafter(0,1, dtype=np.float32)
+    test2 = np.nextafter(1, 0, dtype=np.float32)
+    q = np.clip(p, eps, 1-eps) # to prevent division by 0 somewhere
+    # between 5 and 8, np.clip decides it will not round down anymore.
+    if max(p) == 1 or min(p) == 0:
+        print("Here!")
+    print(max(q))
+    test = 1-eps
+    return np.log(q/(1-q))
 
 def calibration_slope_intercept_inthelarge(predicted_y, true_y):
     """
@@ -29,7 +36,7 @@ def calibration_slope_intercept_inthelarge(predicted_y, true_y):
     """
     y_pred_linear_scores = logit_function(predicted_y)
     CITL = np.mean(true_y) - np.mean(predicted_y)
-    calib_model = LogisticRegression(C=1e30)
+    calib_model = LogisticRegression(C=1e50)
     try:
         print(max(np.array(y_pred_linear_scores).reshape(-1, 1)), min(np.array(y_pred_linear_scores).reshape(-1, 1)))
         calib_model = calib_model.fit(X=np.array(y_pred_linear_scores).reshape(-1, 1), y=np.array(true_y))
