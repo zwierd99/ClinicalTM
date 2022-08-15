@@ -49,12 +49,12 @@ def main():
     print(args)
     train_model(args.tf_idf, args.period, args.features)
 
-def train_model(tf_idf, period, features, tm_split_size=0, flush=False):
+def train_model(tf_idf, period, features, tm_split_size=0, threshold=0.5, flush=False):
     if tf_idf:
-        data = f'data/in-hospital-mortality-tf_idf-{tm_split_size}/'
-        output_dir = 'mimic3models/in_hospital_mortality/FFNN/tm'
+        data = f'data/in-hospital-mortality-tf_idf-{tm_split_size}/{threshold}/'
+        output_dir = f'mimic3models/in_hospital_mortality/FFNN/tm/{tm_split_size}'
     else:
-        data = 'data/in-hospital-mortality/'
+        data = f'data/in-hospital-mortality/'
         output_dir = 'mimic3models/in_hospital_mortality/FFNN/norm'
     train_reader = InHospitalMortalityReader(dataset_dir=os.path.join(data, 'train'),
                                              listfile=os.path.join(data, 'train_listfile.csv'),
@@ -69,7 +69,11 @@ def train_model(tf_idf, period, features, tm_split_size=0, flush=False):
                                             period_length=48.0)
 
     datatype = 'tm' if tf_idf else 'norm'
-    if not os.path.exists(os.path.join('data/root', f'scaled_data_{datatype}_{tm_split_size}.pkl')) or flush:
+    if tf_idf:
+        pkl_path = f"data/root/tf_idf/ss{tm_split_size}/th{threshold}"
+    else:
+        pkl_path = f"data/root/"
+    if not os.path.exists(os.path.join(pkl_path, "scaled_data.pkl")) or flush:
         print('Reading data and extracting features ...')
         (train_X, train_y, train_names) = read_and_extract_features(train_reader, period, features)
         (val_X, val_y, val_names) = read_and_extract_features(val_reader, period, features)
@@ -93,11 +97,11 @@ def train_model(tf_idf, period, features, tm_split_size=0, flush=False):
         test_X = scaler.transform(test_X)
 
         saved_values = (train_X, train_y, train_names, val_X, val_y, val_names, test_X, test_y, test_names)
-        pickle.dump(saved_values, open(os.path.join('data/root', f'scaled_data_{datatype}_{tm_split_size}.pkl'), "wb"))
-    train_X, train_y, train_names, val_X, val_y, val_names, test_X, test_y, test_names = pickle.load(open(os.path.join('data/root', f'scaled_data_{datatype}_{tm_split_size}.pkl'), "rb"))
-    # penalty = ('l2' if args.l2 else 'l1')
+        pickle.dump(saved_values, open(os.path.join(pkl_path, "scaled_data.pkl"), "wb"))
+    train_X, train_y, train_names, val_X, val_y, val_names, test_X, test_y, test_names = pickle.load(
+            open(os.path.join(pkl_path, "scaled_data.pkl"), "rb"))
     if tf_idf:
-        file_name = '{}.{}.{}'.format(period, features, tm_split_size)
+        file_name = '{}.{}.ss{}.th{}'.format(period, features, tm_split_size, threshold)
     else:
         file_name = '{}.{}'.format(period, features)
     train_contains_only_0 = (np.sum(train_y) == 0)
@@ -111,6 +115,8 @@ def train_model(tf_idf, period, features, tm_split_size=0, flush=False):
             keras.layers.Dense(16, activation='relu', input_shape=(714,)),
             keras.layers.Dropout(0.5),
             keras.layers.Dense(2, activation='softmax', input_shape=(714,))
+        #   Misschien omzetten naar output size 1 met sigmoid function, en dan
+        #   predictie doen zonder de laatste layer (als dat kan?)
         ])
         ffnn.compile(optimizer='adam',
                       loss='sparse_categorical_crossentropy',
@@ -145,11 +151,12 @@ def train_model(tf_idf, period, features, tm_split_size=0, flush=False):
         json.dump(ret, res_file)
 
     calibration = calibration_curve(test_y, prediction, n_bins=10)
-    visualisation.plot_calibration(calibration, tm_split_size, "FFNN")
+    visualisation.plot_calibration(calibration, tm_split_size,threshold, "FFNN")
     visualisation.save_calibration_metrics(*calibration_slope_intercept_inthelarge(prediction, test_y), "FFNN",
-                                           tm_split_size)
+                                           tm_split_size, threshold)
     save_results(test_names, prediction, test_y,
-                 os.path.join(output_dir, 'predictions', file_name + '.csv'))
+                 os.path.join(output_dir, 'predictions',
+                              file_name + f'th{threshold}'+  '.csv'))
 
 if __name__ == '__main__':
     main()

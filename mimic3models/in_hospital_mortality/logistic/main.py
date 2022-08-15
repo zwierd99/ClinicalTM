@@ -29,10 +29,10 @@ def read_and_extract_features(reader, period, features):
 
 
 
-def train_model(C, l2, period, features, tf_idf, tm_split_size=0,flush=False):
+def train_model(C, l2, period, features, tf_idf, tm_split_size=0, threshold=0.5, flush=False):
     if tf_idf:
-        data = f'data/in-hospital-mortality-tf_idf-{tm_split_size}/'
-        output_dir = 'mimic3models/in_hospital_mortality/logistic/tm'
+        data = f'data/in-hospital-mortality-tf_idf-{tm_split_size}/{threshold}/'
+        output_dir = f'mimic3models/in_hospital_mortality/logistic/tm/{tm_split_size}'
     else:
         data = f'data/in-hospital-mortality/'
         output_dir = 'mimic3models/in_hospital_mortality/logistic/norm'
@@ -48,8 +48,13 @@ def train_model(C, l2, period, features, tf_idf, tm_split_size=0,flush=False):
     test_reader = InHospitalMortalityReader(dataset_dir=os.path.join(data, 'test'),
                                             listfile=os.path.join(data, 'test_listfile.csv'),
                                             period_length=48.0)
+
     datatype = 'tm' if tf_idf else 'norm'
-    if not os.path.exists(os.path.join('data/root', f'scaled_data_{datatype}_{tm_split_size}.pkl')) or flush:
+    if tf_idf:
+        pkl_path = f"data/root/tf_idf/ss{tm_split_size}/th{threshold}"
+    else:
+        pkl_path = f"data/root/"
+    if not os.path.exists(os.path.join(pkl_path, "scaled_data.pkl")) or flush:
         print('Reading data and extracting features ...')
         (train_X, train_y, train_names) = read_and_extract_features(train_reader, period, features)
         (val_X, val_y, val_names) = read_and_extract_features(val_reader, period, features)
@@ -73,26 +78,26 @@ def train_model(C, l2, period, features, tf_idf, tm_split_size=0,flush=False):
         test_X = scaler.transform(test_X)
 
         saved_values = (train_X, train_y, train_names, val_X, val_y, val_names, test_X, test_y, test_names)
-        pickle.dump(saved_values, open(os.path.join('data/root', f'scaled_data_{datatype}_{tm_split_size}.pkl'), "wb"))
+        pickle.dump(saved_values, open(os.path.join(pkl_path, "scaled_data.pkl"), "wb"))
     train_X, train_y, train_names, val_X, val_y, val_names, test_X, test_y, test_names = pickle.load(
-        open(os.path.join('data/root', f'scaled_data_{datatype}_{tm_split_size}.pkl'), "rb"))
+        open(os.path.join(pkl_path, "scaled_data.pkl"), "rb"))
 
     penalty = ('l2' if l2 else 'l1')
     if tf_idf:
-        file_name = '{}.{}.{}.C{}.{}'.format(period, features, penalty, C, tm_split_size, 2)
+        file_name = '{}.{}.{}.C{}.ss{}.th{}'.format(period, features, penalty, C, tm_split_size, threshold)
     else:
         file_name = '{}.{}.{}.C{}'.format(period, features, penalty, C)
     train_contains_only_0 = (np.sum(train_y) == 0)
     val_contains_only_0 = (np.sum(val_y) == 0)
     if not train_contains_only_0:
-        logreg = LogisticRegression(penalty=penalty, C=C, random_state=42)
+        logreg = LogisticRegression(penalty=penalty, C=1e20, random_state=42)
         logreg.fit(train_X, train_y)
 
     result_dir = os.path.join(output_dir, 'results')
     common_utils.create_directory(result_dir)
 
     if train_contains_only_0:
-        prediction = np.zeros(train_X.shape[0])
+        prediction = np.zeros(test_X.shape[0])
     else:
         prediction = logreg.predict_proba(train_X)
         with open(os.path.join(result_dir, 'train_{}.json'.format(file_name)), 'w') as res_file:
@@ -113,10 +118,12 @@ def train_model(C, l2, period, features, tf_idf, tm_split_size=0,flush=False):
         json.dump(ret, res_file)
 
     calibration = calibration_curve(test_y, prediction, n_bins=10)
-    visualisation.plot_calibration(calibration, tm_split_size, "Logistic Regression")
-    visualisation.save_calibration_metrics(*calibration_slope_intercept_inthelarge(prediction, test_y), "logreg", tm_split_size)
+    visualisation.plot_calibration(calibration, tm_split_size, threshold, "Logistic Regression")
+    visualisation.save_calibration_metrics(*calibration_slope_intercept_inthelarge(prediction, test_y), "logreg",
+                                           tm_split_size, threshold)
     save_results(test_names, prediction, test_y,
-                 os.path.join(output_dir, 'predictions', file_name + '.csv'))
+                 os.path.join(output_dir, 'predictions',
+                              file_name + f'th{threshold}' + '.csv'))
 
 
 def main():

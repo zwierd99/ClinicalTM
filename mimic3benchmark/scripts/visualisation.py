@@ -3,7 +3,9 @@ import os
 import pickle
 import re
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
+from mpl_toolkits import mplot3d
 
 
 def get_auroc(path ='FFNN/tm/results'):
@@ -91,9 +93,9 @@ def create_f1score_plot(path):
     plt.legend()
     plt.show()
 
-def plot_calibration(calibration, tm_split_size, model_type):
+def plot_calibration(calibration, tm_split_size, threshold, model_type):
     x, y = calibration
-    plt.plot(y, x, label= f"{model_type}, {tm_split_size}")
+    plt.plot(y, x, label= f"{model_type}, SS:{tm_split_size}, TH:{threshold}")
     plt.plot([0, 1], [0, 1], linestyle='--')
     plt.xticks(np.arange(0, 1, .1))
     plt.yticks(np.arange(0, 1.1, .1))
@@ -104,8 +106,67 @@ def plot_calibration(calibration, tm_split_size, model_type):
     plt.legend()
     if not os.path.exists('data/root/calibration_plots'):
         os.mkdir('data/root/calibration_plots')
-    plt.savefig(f'data/root/calibration_plots/{model_type}_{tm_split_size}.png')
+    plt.savefig(f'data/root/calibration_plots/{model_type}_ss{tm_split_size}_th{threshold}.png')
     plt.show()
+
+def find_precision(line):
+    list =  re.split('\n', line["Classification Report"])
+    row = list[3].split()
+    precision = float(row[1])
+    return precision
+
+def find_recall(line):
+    list =  re.split('\n', line["Classification Report"])
+    row = list[3].split()
+    recall = float(row[2])
+    return recall
+
+def plot_precision_recall_auroc():
+    dir_tf_idf = "data/root/tf_idf"
+    evals = []
+    for root, dirs, files in os.walk(dir_tf_idf):
+        for parent in dirs:
+            for root2, dirs2, _ in os.walk(os.path.join(root, parent)):
+                for leaf in dirs2:
+                    for root3, dirs, files in os.walk(os.path.join(root2, leaf)):
+                        for filename in files:
+                            if re.search("performance", filename):
+                                with open(os.path.join(root3, filename), 'rb') as f:
+                                    eval = (parent[-3:],leaf[-3:], pickle.load(f))
+                                evals.append(eval)
+    evals = pd.DataFrame(evals, columns=['ss', 'th', 'metrics'])
+    evals['precision'] = evals['metrics'].apply(find_precision)
+    evals['recall'] = evals['metrics'].apply(find_recall)
+    evals = evals.drop('metrics', axis=1)
+
+    dir_auroc = 'mimic3models/in_hospital_mortality/logistic/tm/'
+    aucs = []
+    for root, dirs, files in os.walk(dir_auroc):
+        for filename in files:
+            if re.search("test", filename):
+                with open(os.path.join(root, filename)) as file:
+                    aucs.append(json.load(file)['auroc'])
+    evals['auroc'] = aucs
+
+    x = evals['precision'].values
+    y = evals['recall'].values
+    z = evals['auroc'].values
+    plt.scatter(x, y, c=z)
+    plt.colorbar(label='AUROC')
+    # plt.xticks(np.arange(0, 1, .05))
+    # plt.yticks(np.arange(0, 1.1, .1))
+    plt.xticks(rotation=315)
+    plt.xlabel('Precision')
+    plt.ylabel(r'Recall')
+    plt.tight_layout()
+    plt.legend()
+    plt.show()
+
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    ax.scatter3D(x, y, z, c=z, cmap='Greens', depthshade=False);
+    fig.show()
+
 
 def plot_calibration_metrics():
     with open("data/calibration_metrics/metrics.json", "r") as file:
@@ -156,24 +217,21 @@ def single_metric_plot(metric_list, splitsize_list, model):
 
 
 
-def save_calibration_metrics(slope, intercept, CITL, model_type, tm_split_size):
+def save_calibration_metrics(slope, intercept, CITL, model_type, tm_split_size, threshold):
+    metrics = {
+        f'{model_type}_{tm_split_size}_{threshold}': f"{slope}, {intercept}, {CITL}"
+    }
     if not os.path.exists('data/calibration_metrics'):
         os.mkdir('data/calibration_metrics')
     try:
         in_file = open("data/calibration_metrics/metrics.json", "r")
     except: #If file doesn't exist yet
-        metrics = {
-            f'{model_type}_{tm_split_size}': f"{slope}, {intercept}, {CITL}"
-        }
         out_file = open("data/calibration_metrics/metrics.json", "w")
         json.dump(metrics, out_file, indent=2)
         out_file.close()
 
     else:#If file already exists we update it
         old = json.load(in_file)
-        metrics = {
-            f'{model_type}_{tm_split_size}':f"{slope}, {intercept}, {CITL}"
-        }
         old.update(metrics)
         out_file = open("data/calibration_metrics/metrics.json", "w")
         json.dump(old, out_file, sort_keys=True, indent=2)
@@ -207,10 +265,12 @@ def create_f1_auroc_plot():
     plt.show()
 
 def main():
-    create_AUROC_plots()
-    create_f1score_plot('data/root')
-    create_f1_auroc_plot()
-    plot_calibration_metrics()
+    # create_AUROC_plots()
+    # create_f1score_plot('data/root')
+    # create_f1_auroc_plot()
+    # plot_calibration_metrics()
+    plot_precision_recall_auroc()
+    return
 
 if __name__ == '__main__':
     main()

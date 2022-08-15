@@ -19,7 +19,7 @@ import matplotlib.pylab as plt
 
 def tf_idf_pipeline():
     # splits = np.arange(55, 100, 5)/1000
-    splits = np.arange(100, 1000, 100)/1000
+    splits = np.arange(50, 1000, 50)/1000
     # splits = [0.25]
     for split_size in splits:
         print(f'\n\n\nRunning model for split: {split_size}')
@@ -49,6 +49,29 @@ def setup_data():
     if not os.path.exists(os.path.join('data/root', 'notes.pkl')):
         extract_notes.main()
 
+def tf_idf_threshold_pipeline():
+    # splits = np.arange(55, 100, 5)/1000
+    splits = np.arange(100, 1000, 100)/1000
+    # splits = [0.5]
+    threshold_ranges = np.arange(100, 1000, 100)/1000
+    # threshold_ranges = [0.5]
+    for split_size in splits:
+        print(f'\n\n\nRunning model for split: {split_size}')
+        # if not os.path.exists(os.path.join('data/root', 'tf_idf_labels.pkl')):
+        for th in threshold_ranges:
+            if not os.path.exists(f'data/root/tf_idf/ss{split_size}/th{th}'):
+                os.makedirs(f'data/root/tf_idf/ss{split_size}/th{th}')
+        print('Creating tf_idf model and outcome vector')
+        tf_idf.run_all(split_size, threshold_ranges, flush=False)
+
+        for threshold in threshold_ranges:
+            # if not os.path.exists('data/in-hospital-mortality-tf_idf'):
+            print(f"Decision boundary: {threshold}")
+            print('Creating in-hospital mortality dataset for tf_idf')
+            create_in_hospital_mortality.create_folder(threshold, tf_idf=True,tm_split_size=split_size, flush=False)
+            split_train_val.split(f'data/in-hospital-mortality-tf_idf-{split_size}/{threshold}')
+            print('Training prediction models using tf_idf data')
+            train_models(tm_split_size=split_size, tf_idf_bool=True, threshold=threshold)
 
 
 
@@ -64,7 +87,7 @@ def main():
     start = time.time()
     # setup_data()
     # regular_data_pipeline()
-    tf_idf_pipeline()
+    tf_idf_threshold_pipeline()
     visualisation.main()
     end = time.time()
     print(f'Total time taken: {end-start}')

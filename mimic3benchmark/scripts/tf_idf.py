@@ -129,7 +129,7 @@ def copy_train_test_split(df, tm_split_size, flush):
 
 
 def train_model(X_train, y_train, tm_split_size, flush):
-    if not os.path.exists(os.path.join('data/root', f'tf_idf_GSmodel_{tm_split_size}.pkl')) or flush:
+    if not os.path.exists(os.path.join(f'data/root/tf_idf/ss{tm_split_size}', 'tf_idf_model.pkl')) or flush:
         start = time.time()
         now = datetime.datetime.now()
         print(f'Start training the model at {now.hour}:{now.minute}:{now.second}')
@@ -144,9 +144,9 @@ def train_model(X_train, y_train, tm_split_size, flush):
 
         end = time.time()
         print(f'Total model training time {end-start}')
-        pickle.dump(clf, open(os.path.join('data/root', f'tf_idf_GSmodel_{tm_split_size}.pkl'), "wb"))
+        pickle.dump(clf, open(os.path.join(f'data/root/tf_idf/ss{tm_split_size}', 'tf_idf_model.pkl'), "wb"))
     else:
-        clf = pickle.load(open(os.path.join('data/root', f'tf_idf_GSmodel_{tm_split_size}.pkl'), "rb"))
+        clf = pickle.load(open(os.path.join(f'data/root/tf_idf/ss{tm_split_size}', 'tf_idf_model.pkl'), "rb"))
     # start = time.time()
     # clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(10,2))
     # clf.fit(X_train, y_train)
@@ -156,30 +156,33 @@ def train_model(X_train, y_train, tm_split_size, flush):
     return clf
 
 
-def create_new_labels(df, tm_split_size, flush):
+def create_new_labels(df, tm_split_size, threshold_ranges, flush):
     split = copy_train_test_split(df, tm_split_size, flush)
     X_tm_train, X_tm_test, y_tm_train, y_tm_test, X_pm_train, y_pm_train, X_tm_train_unused, y_tm_train_unused = split
     clf = train_model(X_tm_train, y_tm_train, tm_split_size, flush)
-    y_pm_train_pred = clf.predict(X_pm_train)
-    y_tm_test_pred = clf.predict(X_tm_test)
-    # test = clf.predict(X_tm_train) #Not sure if this is how we want to do it
-    y_pm_train_pred_df = pd.DataFrame(y_pm_train_pred, index=X_pm_train.index).sort_index()
-    # results = pd.DataFrame(clf.cv_results_)
     print(f'Split size: {tm_split_size}')
-    perf1 = metrics.confusion_matrix(y_tm_test, y_tm_test_pred)
-    perf2 = metrics.classification_report(y_tm_test, y_tm_test_pred)
-    # print(performance)
-    # print(metrics.classification_report(y_tm_test, y_tm_test_pred))
-    # if not os.path.exists(os.path.join('data/root', f'tf_idf_performance_{tm_split_size}.pkl')) or flush:
-    perf_dict = {'Confusion Matrix': perf1,
-                'Classification Report': perf2}
-    pickle.dump(perf_dict, open(os.path.join('data/root', f'tf_idf_performance_{tm_split_size}.pkl'), "wb"))
-    export_labels(y_pm_train_pred_df, tm_split_size, flush)
-    return y_pm_train_pred_df
+    for th in threshold_ranges:
+        y_pm_train_pred_df = pd.DataFrame(clf.predict_proba(X_pm_train)[:, 1])
+        y_tm_test_pred_df = pd.DataFrame(clf.predict_proba(X_tm_test)[:, 1])
+        y_pm_train_pred_df = y_pm_train_pred_df.applymap(lambda x: 1 if x > th else 0)
+        y_tm_test_pred_df = y_tm_test_pred_df.applymap(lambda x: 1 if x > th else 0)
+        y_pm_train_pred_df = pd.DataFrame(y_pm_train_pred_df).set_index(X_pm_train.index).sort_index()
+        # results = pd.DataFrame(clf.cv_results_)
 
-def export_labels(new_labels, tm_split_size, flush):
-    if not os.path.exists(os.path.join('data/root', f'tf_idf_labels_{tm_split_size}.pkl')) or flush:
-        pickle.dump(new_labels, open(os.path.join('data/root', f'tf_idf_labels_{tm_split_size}.pkl'), "wb"))
+        perf1 = metrics.confusion_matrix(y_tm_test, y_tm_test_pred_df)
+        perf2 = metrics.classification_report(y_tm_test, y_tm_test_pred_df)
+        # print(performance)
+        # print(metrics.classification_report(y_tm_test, y_tm_test_pred))
+        # if not os.path.exists(os.path.join('data/root', f'tf_idf_performance_{tm_split_size}.pkl')) or flush:
+        perf_dict = {'Confusion Matrix': perf1,
+                    'Classification Report': perf2}
+        pickle.dump(perf_dict, open(os.path.join(f'data/root/tf_idf/ss{tm_split_size}/th{th}', f'tf_idf_performance.pkl'), "wb"))
+        export_labels(y_pm_train_pred_df, tm_split_size, th, flush)
+    return
+
+def export_labels(new_labels, tm_split_size, th, flush):
+    # if not os.path.exists(os.path.join(f'data/root/tf_idf/ss{tm_split_size}/th{th}', f'tf_idf_labels.pkl')) or flush:
+    pickle.dump(new_labels, open(os.path.join(f'data/root/tf_idf/ss{tm_split_size}/th{th}', f'tf_idf_labels.pkl'), "wb"))
     return
 
 def preprocess_notes(df_notes: pd.DataFrame):
@@ -208,12 +211,13 @@ def preprocess_notes(df_notes: pd.DataFrame):
     return df_notes
 
 
-def run_all(tm_split_size,flush=False):
+def run_all(tm_split_size, threshold_ranges = [0.5], flush=False):
     df_notes = pd.read_pickle(os.path.join('data/root', 'notes.pkl'))
     preprocessed_notes = preprocess_notes(df_notes)
     vectorizer, feature_vector = create_feature_vector(preprocessed_notes)
     notes_per_icustay = merge_features_with_labels(feature_vector, preprocessed_notes)
-    create_new_labels(notes_per_icustay, tm_split_size, flush)
+    create_new_labels(notes_per_icustay, tm_split_size, threshold_ranges, flush)
+    return
 
 
 def main():

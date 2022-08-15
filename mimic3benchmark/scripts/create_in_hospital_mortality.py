@@ -9,9 +9,9 @@ import pandas as pd
 import random
 random.seed(49297)
 
-def process_partition(root_path, output_path, tf_idf, partition, tm_split_size=0, flush=False, eps=1e-6, n_hours=48):
+def process_partition(root_path, output_path, tf_idf, partition, tm_split_size=0, threshold=0.5, flush=False, eps=1e-6, n_hours=48):
     if tf_idf:
-        mined_mortality = pickle.load(open(os.path.join('data/root', f'tf_idf_labels_{tm_split_size}.pkl'), "rb"))
+        mined_mortality = pickle.load(open(os.path.join(f'data/root/tf_idf/ss{tm_split_size}/th{threshold}', f'tf_idf_labels.pkl'), "rb"))
     print(partition)
     output_dir = os.path.join(output_path, partition)
     if flush:
@@ -112,16 +112,16 @@ def main():
     args, _ = parser.parse_known_args()
     create_folder(args.root_path, args.tf_idf, args.tm_split_size)
     
-def create_folder(tf_idf, root_path='data/root', flush=False, tm_split_size=0):
+def create_folder(threshold, tf_idf, root_path='data/root', flush=False, tm_split_size=0):
     if tf_idf:
-        output_path = f'data/in-hospital-mortality-tf_idf-{tm_split_size}/'
+        output_path = f'data/in-hospital-mortality-tf_idf-{tm_split_size}/{threshold}'
     else:
         output_path = 'data/in-hospital-mortality/'
 
     if not os.path.exists(output_path):
         os.makedirs(output_path)
-        process_partition(root_path, output_path, tf_idf, "test", tm_split_size=tm_split_size, flush=flush)
-        process_partition(root_path, output_path, tf_idf, "train", tm_split_size=tm_split_size, flush=flush)
+        process_partition(root_path, output_path, tf_idf, "test", tm_split_size=tm_split_size, threshold=threshold, flush=flush)
+        process_partition(root_path, output_path, tf_idf, "train", tm_split_size=tm_split_size, threshold=threshold, flush=flush)
 
 
 if __name__ == '__main__':
