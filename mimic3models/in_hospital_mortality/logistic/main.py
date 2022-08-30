@@ -3,7 +3,8 @@ from __future__ import print_function
 
 import pickle
 
-from sklearn.calibration import calibration_curve
+# from sklearn.calibration import calibration_curve
+from mimic3benchmark.scripts.calibration_copy import calibration_curve
 
 from mimic3benchmark.readers import InHospitalMortalityReader
 from mimic3benchmark.scripts import visualisation
@@ -90,7 +91,7 @@ def train_model(C, l2, period, features, tf_idf, tm_split_size=0, threshold=0.5,
     train_contains_only_0 = (np.sum(train_y) == 0)
     val_contains_only_0 = (np.sum(val_y) == 0)
     if not train_contains_only_0:
-        logreg = LogisticRegression(penalty=penalty, C=1e20, random_state=42)
+        logreg = LogisticRegression(penalty=penalty, C=C, random_state=42)
         logreg.fit(train_X, train_y)
 
     result_dir = os.path.join(output_dir, 'results')
@@ -100,6 +101,8 @@ def train_model(C, l2, period, features, tf_idf, tm_split_size=0, threshold=0.5,
         prediction = np.zeros(test_X.shape[0])
     else:
         prediction = logreg.predict_proba(train_X)
+        # visualisation.save_calibration_metrics(*calibration_slope_intercept_inthelarge(prediction[:, 1], train_y), "logreg",
+        #                                        tm_split_size, threshold)
         with open(os.path.join(result_dir, 'train_{}.json'.format(file_name)), 'w') as res_file:
             ret = print_metrics_binary(train_y, prediction, verbose=False)
             ret = {k: float(v) for k, v in ret.items()}
@@ -117,13 +120,13 @@ def train_model(C, l2, period, features, tf_idf, tm_split_size=0, threshold=0.5,
         ret = {k: float(v) for k, v in ret.items()}
         json.dump(ret, res_file)
 
-    calibration = calibration_curve(test_y, prediction, n_bins=10)
-    visualisation.plot_calibration(calibration, tm_split_size, threshold, "Logistic Regression")
+        # calibration = calibration_curve(test_y, prediction, n_bins=10)
+    visualisation.plot_calibration(test_y, prediction, tm_split_size, threshold, "Logistic Regression")
     visualisation.save_calibration_metrics(*calibration_slope_intercept_inthelarge(prediction, test_y), "logreg",
                                            tm_split_size, threshold)
     save_results(test_names, prediction, test_y,
                  os.path.join(output_dir, 'predictions',
-                              file_name + f'th{threshold}' + '.csv'))
+                              file_name + '.csv'))
 
 
 def main():

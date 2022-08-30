@@ -4,7 +4,8 @@ from __future__ import print_function
 import pickle
 
 import keras
-from sklearn.calibration import calibration_curve
+from mimic3benchmark.scripts.calibration_copy import calibration_curve
+# from sklearn.calibration import calibration_curve
 
 from mimic3benchmark.readers import InHospitalMortalityReader
 from mimic3benchmark.scripts import visualisation
@@ -150,13 +151,13 @@ def train_model(tf_idf, period, features, tm_split_size=0, threshold=0.5, flush=
         ret = {k: float(v) for k, v in ret.items()}
         json.dump(ret, res_file)
 
-    calibration = calibration_curve(test_y, prediction, n_bins=10)
-    visualisation.plot_calibration(calibration, tm_split_size,threshold, "FFNN")
+    # calibration = calibration_curve(test_y, prediction, n_bins=10)
+    visualisation.plot_calibration(test_y, prediction,  tm_split_size,threshold, "FFNN")
     visualisation.save_calibration_metrics(*calibration_slope_intercept_inthelarge(prediction, test_y), "FFNN",
                                            tm_split_size, threshold)
     save_results(test_names, prediction, test_y,
                  os.path.join(output_dir, 'predictions',
-                              file_name + f'th{threshold}'+  '.csv'))
+                              file_name + '.csv'))
 
 if __name__ == '__main__':
     main()

@@ -50,11 +50,11 @@ def setup_data():
         extract_notes.main()
 
 def tf_idf_threshold_pipeline():
-    # splits = np.arange(55, 100, 5)/1000
-    splits = np.arange(100, 1000, 100)/1000
-    # splits = [0.5]
-    threshold_ranges = np.arange(100, 1000, 100)/1000
-    # threshold_ranges = [0.5]
+    # splits = np.arange(50, 150, 10)/1000
+    splits = np.arange(50, 1000, 50)/1000
+    # splits = [0.9]
+    # threshold_ranges = np.arange(100, 1000, 100)/1000
+    threshold_ranges = [0.5]
     for split_size in splits:
         print(f'\n\n\nRunning model for split: {split_size}')
         # if not os.path.exists(os.path.join('data/root', 'tf_idf_labels.pkl')):
@@ -75,11 +75,11 @@ def tf_idf_threshold_pipeline():
 
 
 
-def train_models(tf_idf_bool, tm_split_size=None):
+def train_models(tf_idf_bool, tm_split_size=None, threshold= 0.5):
     print('Training logistic regression prediction model')
-    logreg.train_model(C=0.001, l2=True, period='all', features='all', tf_idf=tf_idf_bool, flush=False, tm_split_size= tm_split_size)
+    logreg.train_model(C=0.001, l2=True, period='all', features='all', tf_idf=tf_idf_bool, flush=False, tm_split_size= tm_split_size, threshold=threshold)
     print('Training feed forward neural network prediction model')
-    ffnn.train_model(tf_idf=tf_idf_bool, period='all', features='all', tm_split_size=tm_split_size, flush=False)
+    ffnn.train_model(tf_idf=tf_idf_bool, period='all', features='all', tm_split_size=tm_split_size, flush=False, threshold=threshold)
 
 
 
@@ -87,13 +87,28 @@ def main():
     start = time.time()
     # setup_data()
     # regular_data_pipeline()
+    # threshold_plot()
     tf_idf_threshold_pipeline()
-    visualisation.main()
+    # visualisation.main()
     end = time.time()
+    print('\007')
     print(f'Total time taken: {end-start}')
 
 
-
+def threshold_plot():
+    splits = np.arange(50, 1000, 100) / 1000
+    # splits = [0.5]
+    recall_range = np.arange(100, 1000, 100) / 1000
+    threshold_dict = tf_idf.determine_thresholds(splits, recall_range)
+    for split_size in splits:
+        for threshold in threshold_dict[split_size]:
+            # if not os.path.exists('data/in-hospital-mortality-tf_idf'):
+            print(f"Decision boundary: {threshold}")
+            print('Creating in-hospital mortality dataset for tf_idf')
+            create_in_hospital_mortality.create_folder(threshold, tf_idf=True, tm_split_size=split_size, flush=False)
+            split_train_val.split(f'data/in-hospital-mortality-tf_idf-{split_size}/{threshold}')
+            print('Training prediction models using tf_idf data')
+            train_models(tm_split_size=split_size, tf_idf_bool=True, threshold=threshold)
 
 if '__main__' == __name__:
     main()

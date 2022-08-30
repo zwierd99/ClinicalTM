@@ -156,16 +156,17 @@ def train_model(X_train, y_train, tm_split_size, flush):
     return clf
 
 
-def create_new_labels(df, tm_split_size, threshold_ranges, flush):
+def create_new_labels(df, tm_split_size, threshold_ranges, flush=False):
     split = copy_train_test_split(df, tm_split_size, flush)
     X_tm_train, X_tm_test, y_tm_train, y_tm_test, X_pm_train, y_pm_train, X_tm_train_unused, y_tm_train_unused = split
     clf = train_model(X_tm_train, y_tm_train, tm_split_size, flush)
     print(f'Split size: {tm_split_size}')
+    y_pm_train_pred_df_probs = pd.DataFrame(clf.predict_proba(X_pm_train)[:, 1])
+    y_tm_test_pred_df_probs = pd.DataFrame(clf.predict_proba(X_tm_test)[:, 1])
     for th in threshold_ranges:
-        y_pm_train_pred_df = pd.DataFrame(clf.predict_proba(X_pm_train)[:, 1])
-        y_tm_test_pred_df = pd.DataFrame(clf.predict_proba(X_tm_test)[:, 1])
-        y_pm_train_pred_df = y_pm_train_pred_df.applymap(lambda x: 1 if x > th else 0)
-        y_tm_test_pred_df = y_tm_test_pred_df.applymap(lambda x: 1 if x > th else 0)
+
+        y_pm_train_pred_df = y_pm_train_pred_df_probs.applymap(lambda x: 1 if x > th else 0)
+        y_tm_test_pred_df = y_tm_test_pred_df_probs.applymap(lambda x: 1 if x > th else 0)
         y_pm_train_pred_df = pd.DataFrame(y_pm_train_pred_df).set_index(X_pm_train.index).sort_index()
         # results = pd.DataFrame(clf.cv_results_)
 
@@ -211,6 +212,53 @@ def preprocess_notes(df_notes: pd.DataFrame):
     return df_notes
 
 
+def create_tf_idf_model(df, tm_split_size, flush=False):
+    split = copy_train_test_split(df, tm_split_size, flush)
+    X_tm_train, X_tm_test, y_tm_train, y_tm_test, X_pm_train, y_pm_train, X_tm_train_unused, y_tm_train_unused = split
+    clf = LogisticRegression(penalty='l2', C=1, random_state=42)
+    clf.fit(X_tm_train, y_tm_train)
+
+    end = time.time()
+    return clf, X_pm_train, X_tm_test, y_tm_test
+
+
+def calculate_thresholds(clf, X_pm_train, X_tm_test, y_tm_test, recall_range, tm_split_size):
+    y_pm_train_pred_df_probs = pd.DataFrame(clf.predict_proba(X_pm_train)[:, 1])
+    y_tm_test_pred_df_probs = pd.DataFrame(clf.predict_proba(X_tm_test)[:, 1])
+
+    th = 0
+    recall = 2
+    difference = 0.01
+    threshold_set = set()
+    for recall_goal in recall_range:
+        while abs(recall_goal-recall) > difference:
+            th = round((th + 0.05), 2)
+            y_pm_train_pred_df = y_pm_train_pred_df_probs.applymap(lambda x: 1 if x > th else 0)
+            y_tm_test_pred_df = y_tm_test_pred_df_probs.applymap(lambda x: 1 if x > th else 0)
+
+            perf1 = metrics.confusion_matrix(y_tm_test, y_tm_test_pred_df)
+            perf2 = metrics.classification_report(y_tm_test, y_tm_test_pred_df)
+            clasrep = perf2.split()
+            recall = float(clasrep[11])
+            if th >= 1:
+                difference += 0.01
+                th = 0
+
+        if not os.path.exists(f'data/root/tf_idf/ss{tm_split_size}/th{th}'):
+            os.makedirs(f'data/root/tf_idf/ss{tm_split_size}/th{th}')
+        perf_dict = {'Confusion Matrix': perf1,
+                     'Classification Report': perf2}
+        y_pm_train_pred_df = pd.DataFrame(y_pm_train_pred_df).set_index(X_pm_train.index).sort_index()
+        pickle.dump(perf_dict,
+                    open(os.path.join(f'data/root/tf_idf/ss{tm_split_size}/th{th}', f'tf_idf_performance.pkl'), "wb"))
+        export_labels(y_pm_train_pred_df, tm_split_size, th, flush=False)
+
+        threshold_set.add(th)
+    threshold_list = sorted(threshold_set)
+
+
+    return threshold_list
+
 def run_all(tm_split_size, threshold_ranges = [0.5], flush=False):
     df_notes = pd.read_pickle(os.path.join('data/root', 'notes.pkl'))
     preprocessed_notes = preprocess_notes(df_notes)
@@ -226,3 +274,20 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+def determine_thresholds(splits, recall_range, flush=False):
+    df_notes = pd.read_pickle(os.path.join('data/root', 'notes.pkl'))
+    preprocessed_notes = preprocess_notes(df_notes)
+    vectorizer, feature_vector = create_feature_vector(preprocessed_notes)
+    notes_per_icustay = merge_features_with_labels(feature_vector, preprocessed_notes)
+    threshold_list_dict = {}
+
+    for tm_split_size in splits:
+        clf, X_pm_train, X_tm_test, y_tm_test = create_tf_idf_model(notes_per_icustay, tm_split_size)
+        threshold_list_dict[round(tm_split_size,2)] = calculate_thresholds(clf, X_pm_train, X_tm_test, y_tm_test,
+                                                        recall_range, tm_split_size)
+
+
+
+    return threshold_list_dict

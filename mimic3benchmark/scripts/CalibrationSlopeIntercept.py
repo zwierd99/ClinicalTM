@@ -13,6 +13,9 @@ import sys
 
 from sklearn.linear_model import LogisticRegression
 import numpy as np
+# import rpy2.robjects as ro
+# from rpy2.robjects.packages import importr
+
 
 def logit_function(p):
     print(max(p))
@@ -34,6 +37,20 @@ def calibration_slope_intercept_inthelarge(predicted_y, true_y):
     :param true_y: A list/vector of the true (binary) outcome.
     :return: A tuple of the (calibration slope, calibration intercept, and the calibration-in-the-large)
     """
+    # utils = importr('utils')
+    # utils.chooseCRANmirror(ind=1)
+    # # utils.install_packages('rlang')
+    # # utils.install_packages('scales')
+    # # utils.install_packages('ggplot2')
+    # utils.install_packages('rms')
+    # rms = importr('rms')
+    #
+    # rval = ro.r['val.prob']
+    # y_pred_R = ro.FloatVector(predicted_y)
+    # y_R = ro.IntVector(true_y)
+    # res_R = rval(y_pred_R, y_R)
+    # print('R', res_R)
+
     y_pred_linear_scores = logit_function(predicted_y)
     CITL = np.mean(true_y) - np.mean(predicted_y)
     calib_model = LogisticRegression(C=1e50)
@@ -51,12 +68,15 @@ def test():
     # We tested the above function in several dataset to correspond with the R-function val.prob from the 'rms' R-package for the Slope and Intercept measures.
     # Note that to run this function, you need additional packages.
 
-    from firthlogist import load_endometrial, load_sex2
+    # from firthlogist import load_endometrial, load_sex2
     import rpy2.robjects as ro
     from rpy2.robjects.packages import importr
     utils = importr('utils')
     utils.chooseCRANmirror(ind=1)
-    #utils.install_packages('rms')
+    # utils.install_packages('rlang')
+    # utils.install_packages('scales')
+    utils.install_packages('ggplot2')
+    utils.install_packages('rms')
     rms = importr('rms')
 
     #X, y, feature_names = load_endometrial()
@@ -79,3 +99,6 @@ def test():
     # Evaluation via the Python function above
     CSlope, CIntercept, CITL = calibration_slope_intercept_inthelarge(y_pred, y)
     print('Measures',CSlope, CIntercept, CITL)
+
+if __name__ == "__main__":
+    test()
