@@ -565,7 +565,9 @@ def calibration_curve(y_true, y_prob, normalize=False, n_bins=5):
     bin_true = np.bincount(binids, weights=y_true, minlength=len(bins))
     bin_total = np.bincount(binids, minlength=len(bins))
 
-    nonzero = bin_total != 0
+    nonzero = np.logical_and(bin_total != 0, bin_total != 1)
+    # nonzero = bin_total != 1
+    # test = nonzero0 & nonzero
     prob_true = (bin_true[nonzero] / bin_total[nonzero])
     prob_pred = (bin_sums[nonzero] / bin_total[nonzero])
 

@@ -101,8 +101,9 @@ def train_model(C, l2, period, features, tf_idf, tm_split_size=0, threshold=0.5,
         prediction = np.zeros(test_X.shape[0])
     else:
         prediction = logreg.predict_proba(train_X)
+        # visualisation.plot_calibration(train_y, prediction[:,1], tm_split_size, threshold, "Logistic Regression training")
         # visualisation.save_calibration_metrics(*calibration_slope_intercept_inthelarge(prediction[:, 1], train_y), "logreg",
-        #                                        tm_split_size, threshold)
+        #                                        0, 0.5)
         with open(os.path.join(result_dir, 'train_{}.json'.format(file_name)), 'w') as res_file:
             ret = print_metrics_binary(train_y, prediction, verbose=False)
             ret = {k: float(v) for k, v in ret.items()}
@@ -123,7 +124,8 @@ def train_model(C, l2, period, features, tf_idf, tm_split_size=0, threshold=0.5,
         # calibration = calibration_curve(test_y, prediction, n_bins=10)
     visualisation.plot_calibration(test_y, prediction, tm_split_size, threshold, "Logistic Regression")
     visualisation.save_calibration_metrics(*calibration_slope_intercept_inthelarge(prediction, test_y), "logreg",
-                                           tm_split_size, threshold)
+                                               tm_split_size, threshold)
+
     save_results(test_names, prediction, test_y,
                  os.path.join(output_dir, 'predictions',
                               file_name + '.csv'))
