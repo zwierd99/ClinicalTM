@@ -52,11 +52,11 @@ def setup_data():
 def tf_idf_threshold_pipeline():
     # splits = np.arange(50, 150, 10)/1000
     # splits = np.arange(50, 150, 10) / 1000
-    # splits = np.arange(200, 1000, 50)/1000
+    splits = np.arange(50, 1000, 50)/1000
     # splits = np.arange(100, 1000, 100) / 1000
-    splits = [0.25]
-    # threshold_ranges = np.arange(100, 1000, 100)/1000
-    threshold_ranges = [0.3]
+    # splits = [0.25]
+    threshold_ranges = np.arange(100, 1000, 100)/1000
+    # threshold_ranges = [0.3]
     for split_size in splits:
         print(f'\n\n\nRunning model for split: {split_size}')
         # if not os.path.exists(os.path.join('data/root', 'tf_idf_labels.pkl')):
@@ -88,9 +88,9 @@ def train_models(tf_idf_bool, tm_split_size=0.0, threshold= 0.5):
 def main():
     start = time.time()
     # setup_data()
-    # regular_data_pipeline()
+    regular_data_pipeline()
     # threshold_plot()
-    # tf_idf_threshold_pipeline()
+    tf_idf_threshold_pipeline()
     visualisation.main()
     end = time.time()
     # print('\007')
