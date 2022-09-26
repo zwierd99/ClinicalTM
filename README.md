@@ -7,9 +7,9 @@ In this project, we aim to gain insights into how accurate text mining should be
 
 ## To run
 
-Ideally, running tf_idf_pipeline.py should perform the actions below. However, I need to check this without preprocessed data, so for my own record keeping I will enumerate the scripts that need to be ran.
+Ideally, running mimic3benchmark/scripts/tf_idf_pipeline.py should perform the actions below. However, I need to check this without preprocessed data, so for my own record keeping I will enumerate the scripts that need to be ran.
 
-To run the code, running the tf_idf_pipeline.py file produces the plots that are used in my thesis. For first time usage, the data/MIMIC directory should be filled with the csv files. Then, the following commands should be ran from the terminal.
+To run the code, running the tf_idf_pipeline.py file produces the plots that are used in my thesis. For first time usage, the data/MIMIC directory should be filled with the csv files from the MIMIC-III database. The tf_idf_pipeline.py runs these commands:
 
        python -m mimic3benchmark.scripts.extract_subjects {PATH TO MIMIC-III CSVs} data/root/
        python -m mimic3benchmark.scripts.validate_events data/root/
