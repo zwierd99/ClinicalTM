@@ -4,7 +4,9 @@ import pickle
 import re
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, colors
+from matplotlib.colors import LinearSegmentedColormap
+
 from mimic3benchmark.scripts.calibration_copy import calibration_curve
 from mpl_toolkits import mplot3d
 
@@ -235,10 +237,13 @@ def plot_precision_recall_calibration():
     split_th_list = []
     for root, dirs, files in os.walk(dir_auroc):
         for filename in files:
-            if re.search("test", filename) and re.search("C1", filename):
+            if re.search("test", filename) and re.search("C0.001", filename):
                 with open(os.path.join(root, filename)) as file:
                     digits = re.findall(r'\d+', filename)  # ['2', '1', '0', '3', '0', '25']
-                    split_th_list.append((float(f"0.{digits[3]}"), float(f"0.{digits[5]}")))
+                    split_th_list.append((float(f"0.{digits[4]}"), float(f"0.{digits[6]}")))
+                    # test = json.load(file)['auroc']
+                    # if test < 0.5:
+                    #     print()
                     aucs.append(json.load(file)['auroc'])
     evals['auroc'] = aucs
 
@@ -246,16 +251,17 @@ def plot_precision_recall_calibration():
     merged_df['slope'] = [float(x.split(', ')[0]) for x in merged_df['calibration']]
     merged_df['intercept'] = [float(x.split(', ')[1]) for x in merged_df['calibration']]
     merged_df['CITL'] = [float(x.split(', ')[2]) for x in merged_df['calibration']]
-    merged_df = merged_df[merged_df['precision'] != 0]
-    merged_df = merged_df[merged_df['slope'] <2]
-    merged_df = merged_df[merged_df['intercept'] < 2]
+    # merged_df = merged_df[merged_df['precision'] != 0]
+    # merged_df = merged_df[merged_df['slope'] <2]
+    # merged_df = merged_df[merged_df['intercept'] < 2]
     # merged_df = merged_df[merged_df['th'] == 0.5]
 
     x = merged_df['precision'].values
     # x2 = evals['f1'].values
     y = merged_df['recall'].values
     z = merged_df['slope'].values
-    plt.scatter(x, y, c=z, s=12)
+    # divnorm = colors.TwoSlopeNorm(vmin=-0.1, vcenter=1, vmax=0.5)
+    plt.scatter(x, y, c=z, s=12, cmap="Blues_r")
     plt.colorbar(label='Calibration Slope')
     # plt.xticks(np.arange(0, 1, .05))
     # plt.yticks(np.arange(0, 1.1, .1))
@@ -268,15 +274,31 @@ def plot_precision_recall_calibration():
 
     x = merged_df['th'].values
     # x2 = evals['f1'].values
-    y = merged_df['slope'].values
-    z = merged_df['auroc'].values
-    plt.scatter(x, y, c=z, s=12)
-    plt.colorbar(label='AUROC')
-    # plt.xticks(np.arange(0, 1, .05))
+    y = merged_df['auroc'].values
+    # z = merged_df['auroc'].values
+    plt.scatter(x, y, s=12)
+    # plt.colorbar(label='AUROC')
+    plt.xticks(np.arange(0, 1, .1))
     # plt.yticks(np.arange(0, 1.1, .1))
     plt.xticks(rotation=315)
     plt.xlabel('Threshold')
-    plt.ylabel(r'Calibration slope')
+    plt.ylabel(r'AUROC')
+    plt.tight_layout()
+    # plt.legend()
+    plt.show()
+
+    x = merged_df['precision'].values
+    # x2 = evals['f1'].values
+    y = merged_df['recall'].values
+    z = merged_df['CITL'].values
+    divnorm = colors.TwoSlopeNorm(vmin=-0.5, vcenter=0, vmax=0.1)
+    plt.scatter(x, y, c=z, s=12, cmap="coolwarm", norm=divnorm)
+    plt.colorbar(label='CITL')
+    # plt.xticks(np.arange(0, 1, .05))
+    # plt.yticks(np.arange(0, 1.1, .1))
+    plt.xticks(rotation=315)
+    plt.xlabel('Precision')
+    plt.ylabel(r'Recall')
     plt.tight_layout()
     # plt.legend()
     plt.show()
@@ -285,13 +307,14 @@ def plot_precision_recall_calibration():
     # x2 = evals['f1'].values
     y = merged_df['recall'].values
     z = merged_df['intercept'].values
-    plt.scatter(x, y, c=z, s=12)
+    divnorm = colors.TwoSlopeNorm(vmin=-1, vcenter=0, vmax=0.1)
+    plt.scatter(x, y, c=z, s=12, cmap="Blues_r")
     plt.colorbar(label='Calibration Intercept')
     # plt.xticks(np.arange(0, 1, .05))
     # plt.yticks(np.arange(0, 1.1, .1))
     plt.xticks(rotation=315)
     plt.xlabel('Precision')
-    plt.ylabel(r'Recall')
+    plt.ylabel('Recall')
     plt.tight_layout()
     # plt.legend()
     plt.show()
@@ -306,8 +329,74 @@ def plot_precision_recall_calibration():
     # plt.yticks(np.arange(0, 1.1, .1))
     plt.xticks(rotation=315)
     plt.xlabel('Precision')
-    plt.ylabel(r'Recall')
+    plt.ylabel('Recall')
     plt.tight_layout()
+    # plt.legend()
+    plt.show()
+
+    x = merged_df['th'].values
+    # x2 = evals['f1'].values
+    y = merged_df['f1'].values
+
+    # z = np.polyfit(x, y, 4)
+    # p = np.poly1d(z)
+    #
+    # line = p(x)
+    #
+    plt.scatter(x, y, s=12)
+    # plt.plot(x, line)
+    # plt.colorbar(label='Calibration in the Large')
+    plt.xticks(np.arange(0, 1, .1))
+    # plt.yticks(np.arange(0, 1.1, .1))
+    plt.xticks(rotation=315)
+    plt.xlabel('Threshold')
+    plt.ylabel('F1 Score')
+    plt.legend()
+    plt.tight_layout()
+    # plt.legend()
+    plt.show()
+
+    x = merged_df['th'].values
+    # x2 = evals['f1'].values
+    y = merged_df['precision'].values
+
+    # z = np.polyfit(x, y, 4)
+    # p = np.poly1d(z)
+    #
+    # line = p(x)
+    #
+    plt.scatter(x, y, s=12)
+    # plt.plot(x, line)
+    # plt.colorbar(label='Calibration in the Large')
+    plt.xticks(np.arange(0, 1, .1))
+    # plt.yticks(np.arange(0, 1.1, .1))
+    plt.xticks(rotation=315)
+    plt.xlabel('Threshold')
+    plt.ylabel('Precision')
+    plt.legend()
+    plt.tight_layout()
+    # plt.legend()
+    plt.show()
+
+    x = merged_df['th'].values
+    # x2 = evals['f1'].values
+    y = merged_df['recall'].values
+    z = merged_df['precision'].values
+    # z = np.polyfit(x, y, 1)
+    # p = np.poly1d(z)
+    # line = p(x)
+
+    plt.scatter(x, y, s=12)
+    # plt.scatter(x, z, s=12, color="red")
+    # plt.plot(x,line, "--", label=f"Slope: {np.round(p.coef[0],2)}, Intercept: {np.round(p.coef[1])}")
+    # plt.colorbar(label='Calibration in the Large')
+    plt.xticks(np.arange(0, 1, .1))
+    # plt.yticks(np.arange(0, 1.1, .1))
+    plt.xticks(rotation=315)
+    plt.xlabel('Threshold')
+    plt.ylabel('Recall')
+    plt.tight_layout()
+    plt.legend()
     # plt.legend()
     plt.show()
 
@@ -338,10 +427,10 @@ def plot_precision_recall_auroc():
     split_th_list = []
     for root, dirs, files in os.walk(dir_auroc):
         for filename in files:
-            if re.search("test", filename) and re.search("C1", filename):
+            if re.search("test", filename) and re.search("C0.001", filename):
                 with open(os.path.join(root, filename)) as file:
                     digits = re.findall(r'\d+', filename) #['2', '1', '0', '3', '0', '25']
-                    split_th_list.append((float(f"0.{digits[3]}"), float(f"0.{digits[5]}")))
+                    split_th_list.append((float(f"0.{digits[4]}"), float(f"0.{digits[6]}")))
                     aucs.append(json.load(file)['auroc'])
     evals['auroc'] = aucs
     # evals
@@ -383,7 +472,7 @@ def plot_precision_recall_auroc():
 
     fig = plt.figure()
     ax = plt.axes(projection='3d')
-    ax.scatter3D(x, y, z, c=z, depthshade=False, s=6) #cmap='Greens'
+    ax.scatter3D(x, y, z, depthshade=False, s=6) #cmap='Greens'
     ax.set_xlabel('Precision')
     ax.set_ylabel('Recall')
     ax.set_zlabel('AUROC')
@@ -489,7 +578,7 @@ def single_metric_plot(metric_tuples, model, x_label="Training data size"):
     plt.xlabel(x_label)
     plt.title(f'Calibration metrics for {model}')
     if model == "LogReg":
-        plt.ylim([-0.7, 2])
+        plt.ylim([-1, 1.2])
     else: plt.ylim([-0.6, 1.1])
     plt.legend(loc='center left', fontsize='x-small', bbox_to_anchor=(1, 0.5))
     plt.tight_layout()
@@ -564,8 +653,8 @@ def create_precision_auroc_plot():
     _, logreg_y = get_auroc(path_logreg_tm)
     tm_x, tm_y = get_precision('data/root')
 
-    plt.plot(tm_y, ffnn_y, marker='o', ms = 4, label="FFNN TM")
-    plt.plot(tm_y, logreg_y, marker='o',ms = 4, label="LogReg TM")
+    plt.scatter(tm_y, ffnn_y, marker='o', label="FFNN TM")
+    plt.scatter(tm_y, logreg_y, marker='o', label="LogReg TM")
 
     logreg_norm = {}
     ffnn_norm = {}
@@ -628,7 +717,296 @@ def create_recall_auroc_plot():
     plt.show()
 
 
+def combine_all_data(model='logreg'):
+    with open("data/calibration_metrics/metrics.json", "r") as file:
+        metrics = json.load(file)
+    metrics_list = []
+    splitsizes_list = []
+    th_list = []
+    for key, value in metrics.items():
+        if re.search(model, key):
+            # if key[-3:] == '0.5':
+            key = re.sub(f'{model}_', '', key)
+            ss = key.split("_")[0]
+            th = key.split("_")[1]
+            splitsizes_list.append(float(ss))
+            th_list.append(float(th))
+            metrics_list.append(value)
+    df = pd.DataFrame(list(zip(splitsizes_list, th_list, metrics_list)), columns=['Split size', 'Decision boundary', 'calibration'])
+    dir_tf_idf = "data/root/tf_idf"
+    evals = []
+
+    # NOG OMSCHRIJVEN?
+    for root, dirs, files in os.walk(dir_tf_idf):
+        for parent in dirs:
+            for root2, dirs2, _ in os.walk(os.path.join(root, parent)):
+                for leaf in dirs2:
+                    for root3, dirs, files in os.walk(os.path.join(root2, leaf)):
+                        for filename in files:
+                            if re.search("performance", filename):
+                                with open(os.path.join(root3, filename), 'rb') as f:
+                                    eval = (float(parent[-3:]), float(leaf[-3:]), pickle.load(f))
+                                evals.append(eval)
+    evals = pd.DataFrame(evals, columns=['Split size', 'Decision boundary', 'metrics'])
+    if model=='FFNN':
+        path_norm = 'mimic3models/in_hospital_mortality/FFNN/norm/results'
+
+    evals['Precision'] = evals['metrics'].apply(find_precision)
+    evals['Recall'] = evals['metrics'].apply(find_recall)
+    evals['F1 score'] = evals['metrics'].apply(find_f1)
+    evals = evals.drop('metrics', axis=1)
+    if model=='logreg':
+        dir_auroc = 'mimic3models/in_hospital_mortality/logistic/tm/'
+        path_norm = 'mimic3models/in_hospital_mortality/logistic/norm/results'
+        aucs = []
+        split_th_list = []
+        for filename in os.listdir(path_norm):
+            if filename[:4] == 'test':
+                with open(os.path.join(path_norm, filename), 'r') as f:
+                    eval = json.load(f)
+                    reference_auroc = eval['auroc']
+        for root, dirs, files in os.walk(dir_auroc):
+            for filename in files:
+                if re.search("test", filename) and re.search("C0.001", filename):
+                    with open(os.path.join(root, filename)) as file:
+                        digits = re.findall(r'\d+', filename)  # ['2', '1', '0', '3', '0', '25']
+                        split_th_list.append((float(f"0.{digits[4]}"), float(f"0.{digits[6]}")))
+                        # test = json.load(file)['auroc']
+                        # if test < 0.5:
+                        #     print()
+                        aucs.append(json.load(file)['auroc'])
+
+    if model=='FFNN':
+        dir_auroc = 'mimic3models/in_hospital_mortality/FFNN/tm/'
+        aucs = []
+        path_norm = 'mimic3models/in_hospital_mortality/FFNN/norm/results'
+        split_th_list = []
+        for filename in os.listdir(path_norm):
+            if filename[:4] == 'test':
+                with open(os.path.join(path_norm, filename), 'r') as f:
+                    eval = json.load(f)
+                    reference_auroc = eval['auroc']
+        for root, dirs, files in os.walk(dir_auroc):
+            for filename in files:
+                if re.search("test", filename):
+                    with open(os.path.join(root, filename)) as file:
+                        digits = re.findall(r'\d+', filename)  # ['2', '1', '0', '3', '0', '25']
+                        split_th_list.append((float(f"0.{digits[1]}"), float(f"0.{digits[3]}")))
+                        # test = json.load(file)['auroc']
+                        # if test < 0.5:
+                        #     print()
+                        aucs.append(json.load(file)['auroc'])
+    splits, ths = zip(*split_th_list)
+    auc_df = pd.DataFrame()
+    auc_df['Split size'] = splits
+    auc_df['Decision boundary'] = ths
+    auc_df['AUROC'] = aucs
+    pm_df = df.merge(auc_df, how="left", on=['Split size', 'Decision boundary'], sort='Split Size')
+
+    merged_df = pm_df.merge(evals, how="left", on=['Split size', 'Decision boundary'])
+    merged_df.at[0, 'AUROC'] = reference_auroc
+    merged_df['Slope'] = [float(x.split(', ')[0]) for x in merged_df['calibration']]
+    merged_df['Intercept'] = [float(x.split(', ')[1]) for x in merged_df['calibration']]
+    merged_df['CITL'] = [float(x.split(', ')[2]) for x in merged_df['calibration']]
+    merged_df.drop('calibration',axis=1, inplace=True)
+    if model == "logreg":
+        reference_tuple = (f"Logistic Regression Non-TM", reference_auroc)
+    if model == "FFNN":
+        reference_tuple = (f"FFNN Non-TM", reference_auroc)
+    return(merged_df)
+
+
+def plot_columns_line(df, x, ys, z=None, lines=[]):
+    for y in ys:
+        label = y
+        if y == "Decision boundary":
+            label = "Decision threshold"
+
+        if len(ys) == 1:
+            label = None
+            plt.ylabel(y, size=14)
+        plt.plot(df[x], df[y], marker='o',c=z, ms=4, label=label)
+    for tuple in lines:
+        label, height = tuple
+        plt.axhline(height, label=label, linestyle='--')
+    plt.xticks(np.arange(0, 1.1, .2), size=14, rotation=315)
+    # plt.yticks(np.arange(0, 1.1, .2), size=14)
+
+    if x == "Decision boundary":
+        x = "Decision threshold"
+    plt.xlabel(x, size=16)
+    # plt.margins(0.1, 0.15)
+    plt.tight_layout()
+    plt.legend(fontsize=14)
+    plt.show()
+
+def plot_columns_scatter(df, x, ys, z=None, lines=[], no_line=False, model=None):
+    for y in ys:
+        label = y
+        if len(ys) == 1:
+            label = None
+            plt.ylabel(y)
+        sub_df = df[df['Decision boundary'] == 0.5]
+        my_cmap = LinearSegmentedColormap.from_list('my_gradient', (
+    # Edit this gradient at https://eltos.github.io/gradient/#0034FF-049585-08FF00-C7030D-FF0700
+    (0.000, (0.000, 0.204, 1.000)),
+    (0.250, (0.016, 0.584, 0.522)),
+    (0.500, (0.031, 1.000, 0.000)),
+    (0.750, (0.780, 0.012, 0.051)),
+    (1.000, (1.000, 0.027, 0.000))))
+        if z:
+            if z=='AUROC':
+                divnorm = colors.TwoSlopeNorm(vmin=0.80, vcenter=0.85, vmax=0.85001)
+                plt.scatter(df[x], df[y], c=df[z].values, cmap=my_cmap, marker='o', s=5, norm=divnorm)
+                plt.colorbar(label=z, extend="min")
+            if z == 'F1 score':
+                divnorm = colors.TwoSlopeNorm(vmin=0.5, vcenter=1, vmax=1.0001)
+                plt.scatter(df[x], df[y], c=df[z].values, cmap=my_cmap, marker='o', s=5, norm=divnorm)
+                plt.colorbar(label=z)
+            # plt.clim(0.80, 0.85)
+            if z == 'Slope':
+                divnorm = colors.TwoSlopeNorm(vmin=0.1, vcenter=1., vmax=4)
+                plt.scatter(df[x], df[y], c=df[z].values, cmap=my_cmap, marker='o', s=5, norm=divnorm)
+                plt.colorbar(label=z, extend="both")
+            if z == 'Intercept':
+                divnorm = colors.TwoSlopeNorm(vmin=-1, vcenter=0., vmax=1)
+                plt.scatter(df[x], df[y], c=df[z].values, cmap=my_cmap, marker='o', s=5, norm=divnorm)
+                plt.colorbar(label=z, extend="both")
+            if z == 'CITL':
+                divnorm = colors.TwoSlopeNorm(vmin=-0.3, vcenter=0, vmax=0.1)
+                plt.scatter(df[x], df[y], c=df[z].values, cmap=my_cmap, marker='o', s=5, label=label, norm=divnorm)
+                plt.colorbar(label=z, extend="both")
+
+            # else:
+            #     plt.scatter(df[x], df[y], c=df[z].values, cmap='Spectral', marker='o', s=5, label=label)
+            #     # plt.colorbar(label=z)
+
+        else:
+            plt.scatter(df[x], df[y], marker='o', s=4, label=label)
+
+        if not no_line:
+            plt.plot(sub_df[x], sub_df[y], ms=4, label=f"0.5 decision threshold")
+
+
+
+    for tuple in lines:
+        label, height = tuple
+        plt.axhline(height, label=label, linestyle='--')
+
+    plt.xticks(rotation=315)
+    # if ys.length == 1:
+    #     plt.ylabel()
+    plt.xlabel(x)
+    if len(ys) > 1 or len(lines)>0:
+        plt.legend(loc='lower left', bbox_to_anchor=(0, 1))
+    plt.tight_layout()
+    plt.show()
+
+def calibration_plots(df, x, ys, z=None, lines=[], model=None):
+    for y in ys:
+        label = y
+        if len(ys) == 1:
+            label = None
+            plt.ylabel(y)
+
+        sub_df = df[df['Decision boundary'] == 0.5]
+        plt.scatter(df[x], df[y],c=z, marker='o', s=4, label=label)
+        plt.plot(sub_df[x], sub_df[y], c=z, ms=4, label=f"0.5 decision threshold")
+    i = 0
+    colors = ['blue', 'orange', 'green']
+    for tuple in lines:
+        label, height = tuple
+        plt.axhline(height, label=label,color=colors[i], linestyle='--')
+        i+=1
+    plt.xticks(rotation=315)
+    if ys[0] == "Slope" and len(ys)==1 and model=='logreg':
+        plt.ylim(0.5,4)
+    if ys[0] == "Intercept" and len(ys)==1 and model=='logreg':
+        plt.ylim(-1,2)
+    if ys[0] == "CITL" and len(ys)==1 and model=='logreg':
+        plt.ylim(-0.3,0)
+    # if ys.length == 1:
+    #     plt.ylabel()
+    plt.xlabel(x)
+    plt.legend(loc='lower left', fontsize='x-small', bbox_to_anchor=(0, 1.02), ncol=3)
+    plt.tight_layout()
+    plt.show()
+
+def tm_plots_th(df):
+    sub_df = df[df['Split size'] == 0.5]
+    plot_columns_line(sub_df, 'Decision boundary', ['Precision', 'Recall', 'F1 score'])
+
+def tm_plots_ss(df):
+    sub_df = df[df['Decision boundary'] == 0.5]
+    plot_columns_line(sub_df, 'Split size', ['Precision', 'Recall', 'F1 score'])
+
+
+def tm_plots_curve(df):
+    plot_columns_scatter(df, 'Precision', ['Recall'],'F1 score', no_line=True)
+
+
+def text_mining_plots(df):
+    tm_plots_th(df)
+    tm_plots_ss(df)
+    tm_plots_curve(df)
+
+
+def tm_pm_plots(df, ref_df, model):
+    # AUROC PLOTS
+    plot_columns_scatter(df, 'F1 score', ['AUROC'], lines=[("Reference model", ref_df['AUROC'].values[0])])
+    sub_df = df[df['Split size'] == 0.5]
+    plot_columns_line(sub_df, 'Decision boundary', ['AUROC'])
+    plot_columns_scatter(df, 'Precision', ['Recall'],'AUROC', no_line=True)
+    plot_columns_scatter(df, 'Precision', ['Recall'], 'Slope', no_line=True, model=model)
+    plot_columns_scatter(df, 'Precision', ['Recall'], 'Intercept', no_line=True, model=model)
+    plot_columns_scatter(df, 'Precision', ['Recall'], 'CITL', no_line=True, model=model)
+    # plot_columns_scatter(df, 'Recall', ['AUROC'], lines=[("Reference model", ref_df['AUROC'].values[0])])
+
+    # Calibration plots
+
+    # calibration_plots(df, 'F1 score', ['Slope', 'Intercept', 'CITL'], lines=[("Reference model Slope", ref_df['Slope'].values[0]),
+    #                                                                                     ("Reference model Intercept", ref_df['Intercept'].values[0]),
+    #                                                                                     ("Reference model CITL", ref_df['CITL'].values[0])])
+    # calibration_plots(df, 'Precision', ['Slope', 'Intercept', 'CITL'], lines=[("Reference model Slope", ref_df['Slope'].values[0]),
+    #                                                                                     ("Reference model Intercept", ref_df['Intercept'].values[0]),
+    #                                                                                     ("Reference model CITL", ref_df['CITL'].values[0])])
+    calibration_plots(df, 'F1 score', ['Slope'],
+                      lines=[("Reference model Slope", ref_df['Slope'].values[0])], model=model)
+
+    calibration_plots(df, 'F1 score', ['Intercept'],
+                      lines=[("Reference model Slope", ref_df['Intercept'].values[0])], model=model)
+
+    calibration_plots(df, 'F1 score', ['CITL'],
+                      lines=[("Reference model Slope", ref_df['CITL'].values[0])], model=model)
+
+    # calibration_plots(df, 'Decision boundary', ['Slope', 'Intercept', 'CITL'],
+    #                   lines=[("Reference model Slope", ref_df['Slope'].values[0]),
+    #                          ("Reference model Intercept", ref_df['Intercept'].values[0]),
+    #                          ("Reference model CITL", ref_df['CITL'].values[0])])
+    #
+    sub_df = df[df['Split size'] == 0.5]
+    plot_columns_line(sub_df, 'Decision boundary', ['Slope'])
+    plot_columns_line(sub_df, 'Decision boundary', ['Intercept'])
+    plot_columns_line(sub_df, 'Decision boundary', ['CITL'])
+    # sub_df = df[df['Split size'] == 0.5]
+    plot_columns_line(sub_df, 'Decision boundary', ['F1 score'])
+
+
 def main():
+    # Model can be FFNN or logreg
+    font = {'size': 12}
+
+    plt.rc('font', **font)
+
+    model = "logreg"
+    df = combine_all_data(model=model)
+    tm_df = df[df['Split size'] != 0]
+    ref_df = df[df['Split size'] == 0]
+    text_mining_plots(tm_df)
+    tm_pm_plots(df, ref_df, model)
+
+
+
     # create_AUROC_plots()
     # create_f1score_plot('data/root/tf_idf/')
     # create_f1_auroc_plot()
@@ -636,8 +1014,8 @@ def main():
     # create_recall_auroc_plot()
     # plot_calibration_metrics_splitsize()
     # plot_calibration_metrics_f1_score()
-    plot_precision_recall_auroc()
-    plot_precision_recall_calibration()
+    # plot_precision_recall_auroc()
+    # plot_precision_recall_calibration()
     return
 
 if __name__ == '__main__':

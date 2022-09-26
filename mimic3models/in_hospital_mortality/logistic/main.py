@@ -30,7 +30,7 @@ def read_and_extract_features(reader, period, features):
 
 
 
-def train_model(C, l2, period, features, tf_idf, tm_split_size=0, threshold=0.5, flush=False):
+def train_model(C, l2, period, features, tf_idf, tm_split_size=0, threshold=0.5, flush=True):
     if tf_idf:
         data = f'data/in-hospital-mortality-tf_idf-{tm_split_size}/{threshold}/'
         output_dir = f'mimic3models/in_hospital_mortality/logistic/tm/{tm_split_size}'
@@ -55,7 +55,7 @@ def train_model(C, l2, period, features, tf_idf, tm_split_size=0, threshold=0.5,
         pkl_path = f"data/root/tf_idf/ss{tm_split_size}/th{threshold}"
     else:
         pkl_path = f"data/root/"
-    if not os.path.exists(os.path.join(pkl_path, "scaled_data.pkl")) or flush:
+    if not os.path.exists(os.path.join(pkl_path, "scaled_data.pkl")) or flush: #or flush (tijdelijk)
         print('Reading data and extracting features ...')
         (train_X, train_y, train_names) = read_and_extract_features(train_reader, period, features)
         (val_X, val_y, val_names) = read_and_extract_features(val_reader, period, features)

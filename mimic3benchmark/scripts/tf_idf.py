@@ -269,7 +269,7 @@ def run_all(tm_split_size, threshold_ranges = [0.5], flush=False):
 
 
 def main():
-    run_all(tm_split_size=1, flush=False)
+    print("This file can't be run by itself. Run tf_idf_pipeline.py instead.")
 
 
 if __name__ == '__main__':

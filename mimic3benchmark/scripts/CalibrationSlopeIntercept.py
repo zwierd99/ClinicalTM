@@ -23,7 +23,6 @@ def logit_function(p):
     test1 = np.nextafter(0,1, dtype=np.float32)
     test2 = np.nextafter(1, 0, dtype=np.float32)
     q = np.clip(p, eps, 1-eps) # to prevent division by 0 somewhere
-    # between 5 and 8, np.clip decides it will not round down anymore.
     if max(p) == 1 or min(p) == 0:
         print("Here!")
     print(max(q))

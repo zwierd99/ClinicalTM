@@ -52,11 +52,11 @@ def setup_data():
 def tf_idf_threshold_pipeline():
     # splits = np.arange(50, 150, 10)/1000
     # splits = np.arange(50, 150, 10) / 1000
-    splits = np.arange(50, 1000, 50)/1000
-    splits = np.arange(100, 1000, 100) / 1000
-    # splits = [0.9]
-    threshold_ranges = np.arange(100, 1000, 100)/1000
-    # threshold_ranges = [0.5]
+    # splits = np.arange(200, 1000, 50)/1000
+    # splits = np.arange(100, 1000, 100) / 1000
+    splits = [0.25]
+    # threshold_ranges = np.arange(100, 1000, 100)/1000
+    threshold_ranges = [0.3]
     for split_size in splits:
         print(f'\n\n\nRunning model for split: {split_size}')
         # if not os.path.exists(os.path.join('data/root', 'tf_idf_labels.pkl')):
@@ -68,7 +68,7 @@ def tf_idf_threshold_pipeline():
 
         for threshold in threshold_ranges:
             # if not os.path.exists('data/in-hospital-mortality-tf_idf'):
-            print(f"Decision boundary: {threshold}")
+            print(f"Split size: {split_size}, Decision boundary: {threshold}")
             print('Creating in-hospital mortality dataset for tf_idf')
             create_in_hospital_mortality.create_folder(threshold, tf_idf=True,tm_split_size=split_size, flush=False)
             split_train_val.split(f'data/in-hospital-mortality-tf_idf-{split_size}/{threshold}')
@@ -79,7 +79,7 @@ def tf_idf_threshold_pipeline():
 
 def train_models(tf_idf_bool, tm_split_size=0.0, threshold= 0.5):
     print('Training logistic regression prediction model')
-    logreg.train_model(C=1, l2=True, period='all', features='all', tf_idf=tf_idf_bool, flush=False, tm_split_size= tm_split_size, threshold=threshold)
+    logreg.train_model(C=0.001, l2=True, period='all', features='all', tf_idf=tf_idf_bool, flush=False, tm_split_size= tm_split_size, threshold=threshold)
     print('Training feed forward neural network prediction model')
     ffnn.train_model(tf_idf=tf_idf_bool, period='all', features='all', tm_split_size=tm_split_size, flush=False, threshold=threshold)
 
@@ -98,6 +98,7 @@ def main():
 
 
 def threshold_plot():
+    # splits = np.arange(100, 1000, 100) / 1000
     splits = np.arange(50, 1000, 100) / 1000
     # splits = [0.5]
     recall_range = np.arange(100, 1000, 100) / 1000
